@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { ProductCategory, ProductQuality } from "@/types";
+import type { ProductCategory, ProductQuality, SaleSource } from "@/types";
 
 // ─── Categorías ───────────────────────────────────────────────────────────────
 
@@ -73,5 +73,42 @@ export function useDeleteQuality() {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/catalog/qualities/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "qualities"] }),
+  });
+}
+
+// ─── Canales de venta ─────────────────────────────────────────────────────────
+
+export function useSaleSources() {
+  return useQuery({
+    queryKey: ["catalog", "sale-sources"],
+    queryFn: async () => {
+      const { data } = await api.get<SaleSource[]>("/catalog/sale-sources");
+      return data;
+    },
+  });
+}
+
+export function useCreateSaleSource() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => api.post("/catalog/sale-sources", { name }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "sale-sources"] }),
+  });
+}
+
+export function useUpdateSaleSource() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      api.patch(`/catalog/sale-sources/${id}`, { name }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "sale-sources"] }),
+  });
+}
+
+export function useDeleteSaleSource() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/catalog/sale-sources/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "sale-sources"] }),
   });
 }

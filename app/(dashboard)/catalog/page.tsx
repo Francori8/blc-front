@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory,
   useQualities, useCreateQuality, useUpdateQuality, useDeleteQuality,
+  useSaleSources, useCreateSaleSource, useUpdateSaleSource, useDeleteSaleSource,
 } from "@/hooks/useCatalog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { getApiError } from "@/lib/utils";
@@ -152,6 +153,7 @@ function CatalogSection({ title, description, items, onCreate, onUpdate, onDelet
 export default function CatalogPage() {
   const { data: categories = [] } = useCategories();
   const { data: qualities = [] } = useQualities();
+  const { data: saleSources = [] } = useSaleSources();
 
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
@@ -161,11 +163,15 @@ export default function CatalogPage() {
   const updateQuality = useUpdateQuality();
   const deleteQuality = useDeleteQuality();
 
+  const createSaleSource = useCreateSaleSource();
+  const updateSaleSource = useUpdateSaleSource();
+  const deleteSaleSource = useDeleteSaleSource();
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Configuración de productos</h1>
-        <p className="text-sm text-zinc-400 mt-0.5">Administrá las categorías y calidades disponibles</p>
+        <h1 className="text-2xl font-bold">Configuración</h1>
+        <p className="text-sm text-zinc-400 mt-0.5">Administrá las categorías, calidades y canales de contacto</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -189,6 +195,17 @@ export default function CatalogPage() {
           onDelete={(id) => deleteQuality.mutateAsync(id)}
           isCreating={createQuality.isPending}
           isDeleting={deleteQuality.isPending}
+        />
+
+        <CatalogSection
+          title="Canales de contacto"
+          description="Cómo llegó el cliente: WhatsApp, Instagram, etc."
+          items={saleSources}
+          onCreate={(name) => createSaleSource.mutateAsync(name)}
+          onUpdate={(id, name) => updateSaleSource.mutateAsync({ id, name })}
+          onDelete={(id) => deleteSaleSource.mutateAsync(id)}
+          isCreating={createSaleSource.isPending}
+          isDeleting={deleteSaleSource.isPending}
         />
       </div>
     </div>

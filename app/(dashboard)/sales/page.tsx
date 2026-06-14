@@ -5,6 +5,7 @@ import { useSales, useCreateSale, useDeleteSale, useProfitReport } from "@/hooks
 import { useCreateClient } from "@/hooks/useClients";
 import { useProducts } from "@/hooks/useProducts";
 import { useClients } from "@/hooks/useClients";
+import { useSaleSources } from "@/hooks/useCatalog";
 import { useQueryClient } from "@tanstack/react-query";
 import { PaymentBadge } from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
@@ -22,12 +23,13 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
 function SaleForm({
   onSubmit, loading, error,
 }: {
-  onSubmit: (d: { productSizeId: string; clientId: string; salePrice: string; paymentMethod: PaymentMethod; notes: string }) => void;
+  onSubmit: (d: { productSizeId: string; clientId: string; salePrice: string; paymentMethod: PaymentMethod; saleSourceId: string; notes: string }) => void;
   loading: boolean;
   error?: string;
 }) {
   const { data: productsResult } = useProducts({ status: "IN_STOCK", limit: 200 });
   const { data: clientsResult } = useClients(undefined, 1, 200);
+  const { data: saleSources = [] } = useSaleSources();
   const products = productsResult?.data ?? [];
   const clients = clientsResult?.data ?? [];
   const [productId, setProductId] = useState("");
@@ -36,6 +38,7 @@ function SaleForm({
     clientId: "",
     salePrice: "",
     paymentMethod: "CASH" as PaymentMethod,
+    saleSourceId: "",
     notes: "",
   });
   const [newClientOpen, setNewClientOpen] = useState(false);
@@ -159,6 +162,16 @@ function SaleForm({
         </div>
       </div>
 
+      {saleSources.length > 0 && (
+        <div>
+          <label className="block text-xs font-medium text-zinc-400 mb-1">Canal de contacto (opcional)</label>
+          <select className={inputCls} value={form.saleSourceId} onChange={(e) => set("saleSourceId", e.target.value)}>
+            <option value="">Sin especificar</option>
+            {saleSources.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+      )}
+
       <div>
         <label className="block text-xs font-medium text-zinc-400 mb-1">Notas (opcional)</label>
         <input className={inputCls} placeholder="Observaciones..." value={form.notes} onChange={(e) => set("notes", e.target.value)} />
@@ -230,6 +243,12 @@ function SaleDetailModal({ sale, onClose, onDelete }: { sale: Sale; onClose: () 
             <span className="text-zinc-500">Método de pago</span>
             <PaymentBadge method={sale.paymentMethod} />
           </div>
+          {sale.saleSource && (
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Canal de contacto</span>
+              <span className="text-zinc-100">{sale.saleSource.name}</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-zinc-500">Vendedor</span>
             <span className="text-zinc-100">{sale.user.name}</span>
@@ -276,13 +295,14 @@ export default function SalesPage() {
 
   async function handleCreate(form: {
     productSizeId: string; clientId: string; salePrice: string;
-    paymentMethod: PaymentMethod; notes: string;
+    paymentMethod: PaymentMethod; saleSourceId: string; notes: string;
   }) {
     setFormError("");
     try {
       await createSale.mutateAsync({
         ...form,
         salePrice: parseFloat(form.salePrice),
+        saleSourceId: form.saleSourceId || undefined,
       });
       setModalOpen(false);
     } catch (e: unknown) {

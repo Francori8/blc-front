@@ -61,6 +61,8 @@ export interface Sale {
   salePrice: string;
   purchasePrice: string;
   paymentMethod: PaymentMethod;
+  saleSourceId?: string | null;
+  saleSource?: SaleSource | null;
   soldAt: string;
   notes?: string;
   productSize: ProductSize & { product: Product };
@@ -132,6 +134,12 @@ export interface ProductCategory {
 }
 
 export interface ProductQuality {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+export interface SaleSource {
   id: string;
   name: string;
   createdAt: string;
