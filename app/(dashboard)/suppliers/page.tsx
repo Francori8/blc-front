@@ -81,7 +81,7 @@ export default function SuppliersPage() {
   async function handleCreate(form: { name: string; contact: string; phone: string; email: string; notes: string }) {
     setFormError("");
     try {
-      await createSupplier.mutateAsync(form);
+      await createSupplier.mutateAsync({ ...form, email: form.email || undefined });
       setCreateOpen(false);
     } catch (e) {
       setFormError(getApiError(e));
@@ -91,7 +91,7 @@ export default function SuppliersPage() {
   async function handleEdit(form: { name: string; contact: string; phone: string; email: string; notes: string }) {
     setFormError("");
     try {
-      await updateSupplier.mutateAsync(form);
+      await updateSupplier.mutateAsync({ ...form, email: form.email || undefined });
       setEditSupplier(null);
     } catch (e) {
       setFormError(getApiError(e));
