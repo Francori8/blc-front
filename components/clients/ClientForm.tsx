@@ -35,7 +35,7 @@ export default function ClientForm({ initial, onSubmit, loading, error, submitLa
         <label className="block text-xs font-medium text-zinc-400 mb-1">Nombre</label>
         <input className={inputCls} placeholder="Juan García" value={form.name} onChange={(e) => set("name", e.target.value)} required />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-zinc-400 mb-1">Instagram</label>
           <input className={inputCls} placeholder="juangarcia" value={form.instagram} onChange={(e) => set("instagram", e.target.value)} />

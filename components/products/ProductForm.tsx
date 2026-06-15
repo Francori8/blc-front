@@ -90,7 +90,7 @@ export default function ProductForm({ initial, onSubmit, loading, error, submitL
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-zinc-400 mb-1">Marca</label>
           <input className={inputCls} placeholder="Nike" value={form.brand} onChange={(e) => set("brand", e.target.value)} required />
@@ -101,7 +101,7 @@ export default function ProductForm({ initial, onSubmit, loading, error, submitL
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-zinc-400 mb-1">Colorway</label>
           <input className={inputCls} placeholder="White/White" value={form.colorway} onChange={(e) => set("colorway", e.target.value)} required />
@@ -114,7 +114,7 @@ export default function ProductForm({ initial, onSubmit, loading, error, submitL
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-zinc-400 mb-1">Precio de compra ($)</label>
           <input className={inputCls} type="number" min="0" step="0.01" placeholder="0.00" value={form.purchasePrice} onChange={(e) => set("purchasePrice", e.target.value)} required />
@@ -125,7 +125,7 @@ export default function ProductForm({ initial, onSubmit, loading, error, submitL
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-zinc-400 mb-1">Categoría</label>
           <select className={inputCls} value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
