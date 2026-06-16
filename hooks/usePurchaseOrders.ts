@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { getApiError } from "@/lib/utils";
+import { toast } from "sonner";
 import type { PurchaseOrder, Paginated } from "@/types";
 
 export function usePurchaseOrders(supplierId?: string, page?: number, limit?: number) {
@@ -32,6 +34,7 @@ export function useCreatePurchaseOrder() {
       api.post("/purchase-orders", payload).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["purchase-orders"] });
+      toast.success("Orden de compra creada");
     },
   });
 }
@@ -44,7 +47,22 @@ export function useReceivePurchaseOrder() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["purchase-orders"] });
       qc.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Orden recibida — stock actualizado");
     },
+    onError: (e) => toast.error(getApiError(e)),
+  });
+}
+
+export function useUpdatePurchaseOrder(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { notes?: string; orderedAt?: string; receivedAt?: string }) =>
+      api.patch(`/purchase-orders/${id}`, payload).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["purchase-orders"] });
+      toast.success("Orden actualizada");
+    },
+    onError: (e) => toast.error(getApiError(e)),
   });
 }
 
@@ -53,6 +71,10 @@ export function useCancelPurchaseOrder() {
   return useMutation({
     mutationFn: (id: string) =>
       api.post(`/purchase-orders/${id}/cancel`).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["purchase-orders"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["purchase-orders"] });
+      toast.success("Orden cancelada");
+    },
+    onError: (e) => toast.error(getApiError(e)),
   });
 }

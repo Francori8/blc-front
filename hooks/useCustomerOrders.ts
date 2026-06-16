@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { getApiError } from "@/lib/utils";
+import { toast } from "sonner";
 import type { CustomerOrder, Paginated, PendingItem } from "@/types";
 
 export function useCustomerOrders(clientId?: string, status?: string, page?: number, limit?: number) {
@@ -45,7 +47,10 @@ export function useCreateCustomerOrder() {
   return useMutation({
     mutationFn: (payload: unknown) =>
       api.post("/customer-orders", payload).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["customer-orders"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["customer-orders"] });
+      toast.success("Pedido creado");
+    },
   });
 }
 
@@ -54,7 +59,11 @@ export function useDeliverItem(orderId: string) {
   return useMutation({
     mutationFn: (itemId: string) =>
       api.post(`/customer-orders/${orderId}/items/${itemId}/deliver`).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["customer-orders"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["customer-orders"] });
+      toast.success("Item entregado");
+    },
+    onError: (e) => toast.error(getApiError(e)),
   });
 }
 
@@ -63,7 +72,11 @@ export function useReserveItem(orderId: string) {
   return useMutation({
     mutationFn: (itemId: string) =>
       api.post(`/customer-orders/${orderId}/items/${itemId}/reserve`).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["customer-orders"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["customer-orders"] });
+      toast.success("Stock reservado");
+    },
+    onError: (e) => toast.error(getApiError(e)),
   });
 }
 
@@ -72,6 +85,10 @@ export function useCancelCustomerOrder() {
   return useMutation({
     mutationFn: (id: string) =>
       api.post(`/customer-orders/${id}/cancel`).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["customer-orders"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["customer-orders"] });
+      toast.success("Pedido cancelado");
+    },
+    onError: (e) => toast.error(getApiError(e)),
   });
 }

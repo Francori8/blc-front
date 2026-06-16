@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Fragment } from "react";
-import { useProducts, useCreateProduct, useUpdateProduct, useUpdateSize, useDeleteProduct } from "@/hooks/useProducts";
+import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { useCategories, useQualities } from "@/hooks/useCatalog";
 import { StatusBadge } from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
@@ -22,7 +22,6 @@ const STATUS_FILTERS: { value: ProductStatus | "ALL"; label: string }[] = [
 function EditProductWrapper({ product, onClose }: { product: Product; onClose: () => void }) {
   const [error, setError] = useState("");
   const update = useUpdateProduct(product.id);
-  const updateSize = useUpdateSize();
 
   async function handleSubmit(form: {
     brand: string; model: string; colorway: string; description: string;
@@ -33,7 +32,6 @@ function EditProductWrapper({ product, onClose }: { product: Product; onClose: (
   }) {
     setError("");
     try {
-      // 1. Actualizar datos del producto
       await update.mutateAsync({
         brand: form.brand,
         model: form.model,
@@ -45,23 +43,13 @@ function EditProductWrapper({ product, onClose }: { product: Product; onClose: (
         images: form.images,
         categoryId: form.categoryId || null,
         qualityId: form.qualityId || null,
+        sizes: form.sizes.map((s) => ({
+          size: s.size,
+          stock: s.stock,
+          purchasePrice: s.purchasePrice.trim() !== "" ? parseFloat(s.purchasePrice) : undefined,
+          salePrice:     s.salePrice.trim()     !== "" ? parseFloat(s.salePrice)     : undefined,
+        })),
       });
-
-      // 2. Actualizar stock y precios de cada talle existente
-      const sizeUpdates = form.sizes
-        .map((s) => {
-          const existing = product.sizes.find((sz) => sz.size === s.size);
-          if (!existing) return null;
-          return updateSize.mutateAsync({
-            sizeId: existing.id,
-            stock: s.stock,
-            purchasePrice: s.purchasePrice.trim() !== "" ? parseFloat(s.purchasePrice) : null,
-            salePrice:     s.salePrice.trim()     !== "" ? parseFloat(s.salePrice)     : null,
-          });
-        })
-        .filter(Boolean);
-
-      await Promise.all(sizeUpdates);
       onClose();
     } catch (e) {
       setError(getApiError(e));
@@ -72,7 +60,7 @@ function EditProductWrapper({ product, onClose }: { product: Product; onClose: (
     <ProductForm
       initial={product}
       onSubmit={handleSubmit}
-      loading={update.isPending || updateSize.isPending}
+      loading={update.isPending}
       error={error}
       submitLabel="Guardar cambios"
     />

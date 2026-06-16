@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   usePurchaseOrders, useCreatePurchaseOrder,
   useReceivePurchaseOrder, useCancelPurchaseOrder,
+  useUpdatePurchaseOrder,
 } from "@/hooks/usePurchaseOrders";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useProducts } from "@/hooks/useProducts";
@@ -25,10 +26,14 @@ function emptyItem(): ItemRow {
 
 // ─── Formulario de nueva orden ────────────────────────────────────────────────
 
+function todayLocal() {
+  return new Date().toLocaleDateString("en-CA");
+}
+
 function PurchaseOrderForm({
   onSubmit, loading, error,
 }: {
-  onSubmit: (d: { supplierId: string; notes: string; items: ItemRow[] }) => void;
+  onSubmit: (d: { supplierId: string; notes: string; orderedAt: string; items: ItemRow[] }) => void;
   loading: boolean;
   error?: string;
 }) {
@@ -39,6 +44,7 @@ function PurchaseOrderForm({
 
   const [supplierId, setSupplierId] = useState("");
   const [notes, setNotes] = useState("");
+  const [orderedAt, setOrderedAt] = useState(todayLocal());
   const [items, setItems] = useState<ItemRow[]>([emptyItem()]);
 
   function setItem(i: number, f: keyof ItemRow, v: string) {
@@ -49,7 +55,7 @@ function PurchaseOrderForm({
   function removeItem(i: number) { setItems((p) => p.filter((_, idx) => idx !== i)); }
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ supplierId, notes, items }); }} className="space-y-5">
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ supplierId, notes, orderedAt, items }); }} className="space-y-5">
       {/* Proveedor */}
       <div>
         <label className="block text-xs font-medium text-zinc-400 mb-1">Proveedor *</label>
@@ -104,10 +110,16 @@ function PurchaseOrderForm({
         </div>
       </div>
 
-      {/* Notas */}
-      <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1">Notas</label>
-        <input className={inputCls} placeholder="Observaciones..." value={notes} onChange={(e) => setNotes(e.target.value)} />
+      {/* Notas + Fecha */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-zinc-400 mb-1">Notas</label>
+          <input className={inputCls} placeholder="Observaciones..." value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-zinc-400 mb-1">Fecha de la orden</label>
+          <input className={inputCls} type="date" value={orderedAt} onChange={(e) => setOrderedAt(e.target.value)} required />
+        </div>
       </div>
 
       {error && <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">{error}</p>}
@@ -120,6 +132,11 @@ function PurchaseOrderForm({
 
 // ─── Modal de detalle de orden ────────────────────────────────────────────────
 
+function toInputDate(dateStr: string | Date | null | undefined): string {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleDateString("en-CA");
+}
+
 function OrderDetailModal({
   order, onClose, onReceive, onCancel, receivePending, cancelPending,
 }: {
@@ -131,37 +148,86 @@ function OrderDetailModal({
   cancelPending: boolean;
 }) {
   const totalCost = order.items.reduce((s, i) => s + parseFloat(i.unitCost) * i.quantity, 0);
+  const updateOrder = useUpdatePurchaseOrder(order.id);
+
+  const [editing, setEditing] = useState(false);
+  const [notes, setNotes] = useState(order.notes ?? "");
+  const [orderedAt, setOrderedAt] = useState(toInputDate(order.orderedAt));
+  const [receivedAt, setReceivedAt] = useState(toInputDate(order.receivedAt));
+
+  async function handleSave() {
+    await updateOrder.mutateAsync({
+      notes: notes || undefined,
+      orderedAt: orderedAt || undefined,
+      ...(order.status === "RECEIVED" && { receivedAt: receivedAt || undefined }),
+    });
+    setEditing(false);
+  }
 
   return (
     <Modal open onClose={onClose} title="Detalle de orden">
       <div className="space-y-5">
         {/* Info general */}
-        <div className="rounded-lg bg-zinc-800/50 border border-zinc-700 px-4 py-3 space-y-1.5 text-sm">
-          <div className="flex justify-between">
-            <span className="text-zinc-500">Proveedor</span>
-            <span className="text-zinc-100 font-medium">{order.supplier.name}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-zinc-500">Estado</span>
-            <OrderStatusBadge status={order.status} />
-          </div>
-          <div className="flex justify-between">
-            <span className="text-zinc-500">Fecha</span>
-            <span className="text-zinc-100">{formatDate(order.orderedAt)}</span>
-          </div>
-          {order.receivedAt && (
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Recibida</span>
-              <span className="text-zinc-100">{formatDate(order.receivedAt)}</span>
+        {editing ? (
+          <div className="rounded-lg bg-zinc-800/50 border border-zinc-700 px-4 py-3 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Fecha de orden</label>
+                <input className={inputCls} type="date" value={orderedAt} onChange={(e) => setOrderedAt(e.target.value)} />
+              </div>
+              {order.status === "RECEIVED" && (
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">Fecha de recibido</label>
+                  <input className={inputCls} type="date" value={receivedAt} onChange={(e) => setReceivedAt(e.target.value)} />
+                </div>
+              )}
             </div>
-          )}
-          {order.notes && (
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Notas</span>
-              <span className="text-zinc-400 text-right max-w-[60%]">{order.notes}</span>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Notas</label>
+              <input className={inputCls} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observaciones..." />
             </div>
-          )}
-        </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={handleSave} disabled={updateOrder.isPending} className={`flex-1 ${btnPrimary} py-2 text-sm`}>
+                {updateOrder.isPending ? "Guardando..." : "Guardar"}
+              </button>
+              <button onClick={() => setEditing(false)} className="flex-1 py-2 text-sm rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-100 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-lg bg-zinc-800/50 border border-zinc-700 px-4 py-3 space-y-1.5 text-sm">
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Proveedor</span>
+              <span className="text-zinc-100 font-medium">{order.supplier.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Estado</span>
+              <OrderStatusBadge status={order.status} />
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Fecha de orden</span>
+              <span className="text-zinc-100">{formatDate(order.orderedAt)}</span>
+            </div>
+            {order.receivedAt && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Recibida</span>
+                <span className="text-zinc-100">{formatDate(order.receivedAt)}</span>
+              </div>
+            )}
+            {order.notes && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Notas</span>
+                <span className="text-zinc-400 text-right max-w-[60%]">{order.notes}</span>
+              </div>
+            )}
+            <div className="pt-1">
+              <button onClick={() => setEditing(true)} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+                Editar datos
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Ítems */}
         <div>
@@ -244,12 +310,13 @@ export default function PurchaseOrdersPage() {
   const receiveOrder = useReceivePurchaseOrder();
   const cancelOrder = useCancelPurchaseOrder();
 
-  async function handleCreate(form: { supplierId: string; notes: string; items: ItemRow[] }) {
+  async function handleCreate(form: { supplierId: string; notes: string; orderedAt: string; items: ItemRow[] }) {
     setFormError("");
     try {
       await createOrder.mutateAsync({
         supplierId: form.supplierId,
         notes: form.notes || undefined,
+        orderedAt: form.orderedAt || undefined,
         items: form.items.map((i) => ({
           productId: i.productId || undefined,
           size: i.size,

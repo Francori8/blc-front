@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { getApiError } from "@/lib/utils";
+import { toast } from "sonner";
 import type { Sale, ProfitReport, PaymentMethod, Paginated } from "@/types";
 
 export function useSales(filters?: { clientId?: string; paymentMethod?: PaymentMethod; from?: string; to?: string; page?: number; limit?: number }) {
@@ -19,6 +21,18 @@ export function useCreateSale() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Venta registrada");
+    },
+  });
+}
+
+export function useUpdateSale(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: unknown) => api.patch(`/sales/${id}`, payload).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      toast.success("Venta actualizada");
     },
   });
 }
@@ -32,7 +46,9 @@ export function useDeleteSale() {
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["profit"] });
+      toast.success("Venta eliminada");
     },
+    onError: (e) => toast.error(getApiError(e)),
   });
 }
 

@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { getApiError } from "@/lib/utils";
+import { toast } from "sonner";
 import type { User } from "@/types";
 
 export function useUsers() {
@@ -16,7 +18,10 @@ export function useCreateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: unknown) => api.post("/users", payload).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users"] });
+      toast.success("Usuario creado");
+    },
   });
 }
 
@@ -24,6 +29,10 @@ export function useDeactivateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.delete(`/users/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users"] });
+      toast.success("Usuario desactivado");
+    },
+    onError: (e) => toast.error(getApiError(e)),
   });
 }

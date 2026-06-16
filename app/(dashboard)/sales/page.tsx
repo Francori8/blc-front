@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSales, useCreateSale, useDeleteSale, useProfitReport } from "@/hooks/useSales";
+import { useSales, useCreateSale, useUpdateSale, useDeleteSale, useProfitReport } from "@/hooks/useSales";
 import { useCreateClient } from "@/hooks/useClients";
 import { useProducts } from "@/hooks/useProducts";
 import { useClients } from "@/hooks/useClients";
@@ -20,10 +20,14 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "MERCADOPAGO", label: "MercadoPago" },
 ];
 
+function todayLocal() {
+  return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD en zona local
+}
+
 function SaleForm({
   onSubmit, loading, error,
 }: {
-  onSubmit: (d: { productSizeId: string; clientId: string; salePrice: string; paymentMethod: PaymentMethod; saleSourceId: string; notes: string }) => void;
+  onSubmit: (d: { productSizeId: string; clientId: string; salePrice: string; paymentMethod: PaymentMethod; saleSourceId: string; notes: string; soldAt: string }) => void;
   loading: boolean;
   error?: string;
 }) {
@@ -40,6 +44,7 @@ function SaleForm({
     paymentMethod: "CASH" as PaymentMethod,
     saleSourceId: "",
     notes: "",
+    soldAt: todayLocal(),
   });
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [newClientError, setNewClientError] = useState("");
@@ -172,14 +177,96 @@ function SaleForm({
         </div>
       )}
 
-      <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1">Notas (opcional)</label>
-        <input className={inputCls} placeholder="Observaciones..." value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-zinc-400 mb-1">Notas (opcional)</label>
+          <input className={inputCls} placeholder="Observaciones..." value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-zinc-400 mb-1">Fecha</label>
+          <input className={inputCls} type="date" value={form.soldAt} onChange={(e) => set("soldAt", e.target.value)} required />
+        </div>
       </div>
 
       {error && <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">{error}</p>}
       <button type="submit" disabled={loading} className="w-full rounded-lg bg-white text-zinc-950 font-semibold py-2 text-sm hover:bg-zinc-200 transition-colors disabled:opacity-50">
         {loading ? "Registrando..." : "Registrar venta"}
+      </button>
+    </form>
+  );
+}
+
+function EditSaleForm({ sale, onClose, error }: { sale: Sale; onClose: () => void; error?: string }) {
+  const update = useUpdateSale(sale.id);
+  const { data: saleSources = [] } = useSaleSources();
+  const inputCls = "w-full rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/20";
+  const [form, setForm] = useState({
+    salePrice: parseFloat(sale.salePrice).toString(),
+    paymentMethod: sale.paymentMethod as PaymentMethod,
+    saleSourceId: sale.saleSource?.id ?? "",
+    notes: sale.notes ?? "",
+    soldAt: new Date(sale.soldAt).toLocaleDateString("en-CA"),
+  });
+  const [localError, setLocalError] = useState("");
+
+  function set<K extends keyof typeof form>(f: K, v: typeof form[K]) {
+    setForm((p) => ({ ...p, [f]: v }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLocalError("");
+    try {
+      await update.mutateAsync({
+        salePrice: parseFloat(form.salePrice),
+        paymentMethod: form.paymentMethod,
+        saleSourceId: form.saleSourceId || null,
+        notes: form.notes || null,
+        soldAt: form.soldAt,
+      });
+      onClose();
+    } catch (e: unknown) {
+      setLocalError(getApiError(e));
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="rounded-lg bg-zinc-800/50 border border-zinc-700 px-4 py-3 text-sm text-zinc-400">
+        {sale.productSize.product.brand} {sale.productSize.product.model} · Talle {sale.productSize.size} · {sale.client.name}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-zinc-400 mb-1">Precio de venta ($)</label>
+          <input className={inputCls} type="number" min="0" step="0.01" value={form.salePrice} onChange={(e) => set("salePrice", e.target.value)} required />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-zinc-400 mb-1">Método de pago</label>
+          <select className={inputCls} value={form.paymentMethod} onChange={(e) => set("paymentMethod", e.target.value as PaymentMethod)}>
+            {PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-zinc-400 mb-1">Canal de contacto</label>
+          <select className={inputCls} value={form.saleSourceId} onChange={(e) => set("saleSourceId", e.target.value)}>
+            <option value="">Sin especificar</option>
+            {saleSources.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-zinc-400 mb-1">Fecha</label>
+          <input className={inputCls} type="date" value={form.soldAt} onChange={(e) => set("soldAt", e.target.value)} required />
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-zinc-400 mb-1">Notas</label>
+        <input className={inputCls} placeholder="Observaciones..." value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+      </div>
+      {(localError || error) && <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">{localError || error}</p>}
+      <button type="submit" disabled={update.isPending} className="w-full rounded-lg bg-white text-zinc-950 font-semibold py-2 text-sm hover:bg-zinc-200 transition-colors disabled:opacity-50">
+        {update.isPending ? "Guardando..." : "Guardar cambios"}
       </button>
     </form>
   );
@@ -195,7 +282,7 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
   );
 }
 
-function SaleDetailModal({ sale, onClose, onDelete }: { sale: Sale; onClose: () => void; onDelete: () => void }) {
+function SaleDetailModal({ sale, onClose, onDelete, onEdit }: { sale: Sale; onClose: () => void; onDelete: () => void; onEdit: () => void }) {
   const gain = parseFloat(sale.salePrice) - parseFloat(sale.purchasePrice);
   const margin = parseFloat(sale.salePrice) > 0
     ? ((gain / parseFloat(sale.salePrice)) * 100).toFixed(1)
@@ -266,12 +353,18 @@ function SaleDetailModal({ sale, onClose, onDelete }: { sale: Sale; onClose: () 
         </div>
 
         {/* Acciones */}
-        <div className="pt-1">
+        <div className="pt-1 flex gap-2">
+          <button
+            onClick={onEdit}
+            className="flex-1 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 font-semibold py-2 text-sm hover:bg-zinc-700 transition-colors"
+          >
+            Editar
+          </button>
           <button
             onClick={onDelete}
-            className="w-full rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 font-semibold py-2 text-sm hover:bg-red-500/20 transition-colors"
+            className="flex-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 font-semibold py-2 text-sm hover:bg-red-500/20 transition-colors"
           >
-            Eliminar venta
+            Eliminar
           </button>
         </div>
       </div>
@@ -286,6 +379,7 @@ export default function SalesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [restoreStock, setRestoreStock] = useState(true);
   const [detailSale, setDetailSale] = useState<Sale | null>(null);
+  const [editSale, setEditSale] = useState<Sale | null>(null);
 
   const { data: result, isLoading } = useSales({ page, limit: 20 });
   const sales = result?.data ?? [];
@@ -295,7 +389,7 @@ export default function SalesPage() {
 
   async function handleCreate(form: {
     productSizeId: string; clientId: string; salePrice: string;
-    paymentMethod: PaymentMethod; saleSourceId: string; notes: string;
+    paymentMethod: PaymentMethod; saleSourceId: string; notes: string; soldAt: string;
   }) {
     setFormError("");
     try {
@@ -303,6 +397,7 @@ export default function SalesPage() {
         ...form,
         salePrice: parseFloat(form.salePrice),
         saleSourceId: form.saleSourceId || undefined,
+        soldAt: form.soldAt || undefined,
       });
       setModalOpen(false);
     } catch (e: unknown) {
@@ -444,7 +539,14 @@ export default function SalesPage() {
           sale={detailSale}
           onClose={() => setDetailSale(null)}
           onDelete={() => { setRestoreStock(true); setDeleteId(detailSale.id); setDetailSale(null); }}
+          onEdit={() => { setEditSale(detailSale); setDetailSale(null); }}
         />
+      )}
+
+      {editSale && (
+        <Modal open onClose={() => setEditSale(null)} title="Editar venta">
+          <EditSaleForm sale={editSale} onClose={() => setEditSale(null)} />
+        </Modal>
       )}
 
       {/* Diálogo eliminar venta */}

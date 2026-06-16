@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { getApiError } from "@/lib/utils";
+import { toast } from "sonner";
 import type { ProductCategory, ProductQuality, SaleSource } from "@/types";
 
 // ─── Categorías ───────────────────────────────────────────────────────────────
@@ -18,7 +20,10 @@ export function useCreateCategory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (name: string) => api.post("/catalog/categories", { name }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "categories"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["catalog", "categories"] });
+      toast.success("Categoría creada");
+    },
   });
 }
 
@@ -27,7 +32,10 @@ export function useUpdateCategory() {
   return useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       api.patch(`/catalog/categories/${id}`, { name }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "categories"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["catalog", "categories"] });
+      toast.success("Categoría actualizada");
+    },
   });
 }
 
@@ -35,7 +43,11 @@ export function useDeleteCategory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.delete(`/catalog/categories/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "categories"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["catalog", "categories"] });
+      toast.success("Categoría eliminada");
+    },
+    onError: (e) => toast.error(getApiError(e)),
   });
 }
 
@@ -55,7 +67,10 @@ export function useCreateQuality() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (name: string) => api.post("/catalog/qualities", { name }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "qualities"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["catalog", "qualities"] });
+      toast.success("Calidad creada");
+    },
   });
 }
 
@@ -64,7 +79,10 @@ export function useUpdateQuality() {
   return useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       api.patch(`/catalog/qualities/${id}`, { name }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "qualities"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["catalog", "qualities"] });
+      toast.success("Calidad actualizada");
+    },
   });
 }
 
@@ -72,7 +90,11 @@ export function useDeleteQuality() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.delete(`/catalog/qualities/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "qualities"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["catalog", "qualities"] });
+      toast.success("Calidad eliminada");
+    },
+    onError: (e) => toast.error(getApiError(e)),
   });
 }
 
@@ -92,7 +114,10 @@ export function useCreateSaleSource() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (name: string) => api.post("/catalog/sale-sources", { name }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "sale-sources"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["catalog", "sale-sources"] });
+      toast.success("Canal de venta creado");
+    },
   });
 }
 
@@ -101,7 +126,10 @@ export function useUpdateSaleSource() {
   return useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       api.patch(`/catalog/sale-sources/${id}`, { name }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "sale-sources"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["catalog", "sale-sources"] });
+      toast.success("Canal de venta actualizado");
+    },
   });
 }
 
@@ -109,6 +137,10 @@ export function useDeleteSaleSource() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.delete(`/catalog/sale-sources/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog", "sale-sources"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["catalog", "sale-sources"] });
+      toast.success("Canal de venta eliminado");
+    },
+    onError: (e) => toast.error(getApiError(e)),
   });
 }

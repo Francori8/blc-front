@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { getApiError } from "@/lib/utils";
+import { toast } from "sonner";
 import type { Product, ProductStatus, Paginated } from "@/types";
 
 export function useProducts(filters?: { status?: ProductStatus; brand?: string; size?: string; lowStock?: boolean; categoryId?: string; qualityId?: string; page?: number; limit?: number }) {
@@ -27,7 +29,10 @@ export function useCreateProduct() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: unknown) => api.post("/products", payload).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Producto creado");
+    },
   });
 }
 
@@ -35,7 +40,10 @@ export function useUpdateProduct(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: unknown) => api.patch(`/products/${id}`, payload).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Producto actualizado");
+    },
   });
 }
 
@@ -44,7 +52,10 @@ export function useUpdateSize() {
   return useMutation({
     mutationFn: ({ sizeId, ...payload }: { sizeId: string; stock: number; purchasePrice?: number | null; salePrice?: number | null }) =>
       api.patch(`/products/sizes/${sizeId}`, payload).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Talle actualizado");
+    },
   });
 }
 
@@ -60,6 +71,10 @@ export function useDeleteProduct() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.delete(`/products/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Producto eliminado");
+    },
+    onError: (e) => toast.error(getApiError(e)),
   });
 }
